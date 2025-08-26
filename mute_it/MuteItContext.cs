@@ -1,8 +1,10 @@
-﻿using System;
+﻿using NAudio.CoreAudioApi;
+using System;
+using System.Drawing;
+using System.IO;
+using System.Media;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-
-using NAudio.CoreAudioApi;
 
 namespace mute_it
 {
@@ -25,6 +27,12 @@ namespace mute_it
         private NotificationClient notificationClient;
         private MMDevice primaryMicDevice;
 
+        private static readonly string mediaFolder = Environment.GetFolderPath(Environment.SpecialFolder.Windows) + @"\Media";
+        private static readonly SoundPlayer speechOnPlayer = new SoundPlayer(Path.Combine(mediaFolder, "Speech On.wav"));
+        private static readonly SoundPlayer speechOffPlayer = new SoundPlayer(Path.Combine(mediaFolder, "Speech Off.wav"));
+
+        private static readonly Icon MicOffIcon = Properties.Resources.mic_off;
+        private static readonly Icon MicOnIcon = Properties.Resources.mic_on;
         public MuteItContext()
         {
             isMuted = true;
@@ -102,7 +110,7 @@ namespace mute_it
                 primaryMicDevice.AudioEndpointVolume.Mute = doMute;
             }
         }
-
+        
         public void muteMic()
         {
             setMicMuteStatus(true);
@@ -123,7 +131,17 @@ namespace mute_it
 
         private void updateMicStatus()
         {
-            tbIcon.Icon = isMuted ? Properties.Resources.mic_off : Properties.Resources.mic_on;
+            //tbIcon.Icon = isMuted ? Properties.Resources.mic_off : Properties.Resources.mic_on;
+            if (tbIcon.Icon != null && tbIcon.Icon != MicOffIcon && tbIcon.Icon != MicOnIcon)
+            {
+                tbIcon.Icon.Dispose();
+            }
+            tbIcon.Icon = isMuted ? MicOffIcon : MicOnIcon;
+            //SystemSounds.Beep.Play();
+            if (isMuted)
+                speechOffPlayer.Play();
+            else
+                speechOnPlayer.Play();
         }
 
         private MMDevice getPrimaryMicDevice()
@@ -154,6 +172,8 @@ namespace mute_it
             disposeDevice();
             deviceEnumerator.UnregisterEndpointNotificationCallback(notificationClient);
             deviceEnumerator.Dispose();
+            speechOffPlayer.Dispose();
+            speechOnPlayer.Dispose();
             tbIcon.Dispose();
             Dispose();
             Application.Exit();
